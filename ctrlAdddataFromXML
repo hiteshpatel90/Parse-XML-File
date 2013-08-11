@@ -1,0 +1,180 @@
+////////////////////////////////////////////////////////////////////
+//Type             : Apex Class
+//Name             : ctrlAdddataFromXML
+//Company          : 
+//Created By       :
+//Last Modified By :
+///////////////////////////////////////////////////////////////////
+public class ctrlAdddataFromXML{
+    public static string strXML {get; set;}
+    // constructor
+    public ctrlAdddataFromXML(){
+     
+    } 
+    public static void InsertCoursesFromxml(string strBatchId){
+        strXML = clsAdddataFromXML.getCoursesfromXML();        
+        List<Courses__c> lstCourses = [select id, Name,courseId__c,Id__c  from Courses__c];
+        Courses__c objCourses;
+        XMLDom xmldomOrders= new XMLDom(strXML);
+        XMLDom.Element xmlEleObj ;       
+         
+        if(xmldomOrders.root != null) {
+            xmlEleObj = xmldomOrders.getElementByTagName('ArrayOfCourseVO');            
+            if(xmlEleObj !=null) {                  
+                for(XMLDom.Element EleObj:xmlEleObj.childNodes) {
+                    objCourses = new Courses__c();                      
+                    for(XMLDom.Element orderField: EleObj.childNodes){                                            
+                        String xmlvalue = orderField.nodeValue;                         
+                        if(orderField.nodeName == 'allowGuests' && xmlvalue != '') objCourses.allowGuests__c = boolean.valueOf(xmlvalue);
+                        else if(orderField.nodeName == 'allowObservers' && xmlvalue != '') objCourses.allowObservers__c = boolean.valueOf(xmlvalue);
+                        else if(orderField.nodeName == 'available' && xmlvalue != '') objCourses.available__c = boolean.valueOf(xmlvalue);
+                        else if(orderField.nodeName == 'batchUid' && xmlvalue != '') objCourses.batchUid__c = xmlvalue;
+                        else if(orderField.nodeName == 'buttonStyleBbId' && xmlvalue != '') objCourses.buttonStyleBbId__c =xmlvalue;
+                        else if(orderField.nodeName == 'buttonStyleShape' && xmlvalue != '') objCourses.buttonStyleShape__c = xmlvalue;
+                        else if(orderField.nodeName == 'buttonStyleType' && xmlvalue != '') objCourses.buttonStyleType__c = xmlvalue;          
+                        else if(orderField.nodeName == 'classificationId' && xmlvalue != '') objCourses.classificationId__c = xmlvalue;
+                        else if(orderField.nodeName == 'courseDuration' && xmlvalue != '') objCourses.courseDuration__c = xmlvalue;
+                        else if(orderField.nodeName == 'courseId' && xmlvalue != '') objCourses.courseId__c = xmlvalue;
+                        else if(orderField.nodeName == 'coursePace' && xmlvalue != '') objCourses.coursePace__c = xmlvalue;
+                        else if(orderField.nodeName == 'courseServiceLevel' && xmlvalue != '') objCourses.courseServiceLevel__c = xmlvalue;
+                        else if(orderField.nodeName == 'decAbsoluteLimit' && xmlvalue != '') objCourses.decAbsoluteLimit__c = xmlvalue;
+                        else if(orderField.nodeName == 'description' && xmlvalue != '') objCourses.description__c = xmlvalue.left(255);
+                        else if(orderField.nodeName == 'endDate' && xmlvalue != '') objCourses.endDate__c = xmlvalue;
+                        else if(orderField.nodeName == 'enrollmentEndDate' && xmlvalue != '') objCourses.enrollmentEndDate__c = xmlvalue;
+                        else if(orderField.nodeName == 'enrollmentStartDate' && xmlvalue != '') objCourses.enrollmentStartDate__c = xmlvalue;
+                        else if(orderField.nodeName == 'enrollmentType' && xmlvalue != '') objCourses.enrollmentType__c = xmlvalue;
+                        else if(orderField.nodeName == 'fee' && xmlvalue != '') objCourses.fee__c = xmlvalue;
+                        else if(orderField.nodeName == 'hasDescriptionPage' && xmlvalue != '') objCourses.hasDescriptionPage__c = boolean.valueOf(xmlvalue);
+                        else if(orderField.nodeName == 'id' && xmlvalue != '') objCourses.id__c = xmlvalue;
+                        else if(orderField.nodeName == 'name' && xmlvalue != ''){
+                            objCourses.Name = xmlvalue.left(40); 
+                            objCourses.Name__c = xmlvalue;
+                        }
+                        else if(orderField.nodeName == 'numberOfDaysOfUse' && xmlvalue != '') objCourses.numberOfDaysOfUse__c = xmlvalue;
+                        else if(orderField.nodeName == 'organization' && xmlvalue != '') objCourses.organization__c = boolean.valueOf(xmlvalue);                         
+                        
+                    }
+                    if(objCourses != null){                         
+                        lstCourses.add(objCourses);
+                    }
+                }
+            }   
+        }          
+        if(lstCourses.size() > 0){  
+            Schema.SObjectField f = Courses__c.Fields.id__c;
+            Database.UpsertResult [] cr = Database.upsert(lstCourses, f, false); 
+            Integer intInsertedRec = 0;
+            Integer intUpdatedRec = 0;
+            for(Database.UpsertResult rslt :cr){
+                if(rslt.isSuccess() == true){
+                    if(rslt.isCreated() == true){
+                        intInsertedRec += 1;
+                    }else if(rslt.isCreated() == false){
+                        intUpdatedRec += 1;
+                    }
+                }
+            }            
+            Count_Upsert_Record_XML__c objCountUpsertRecXML = new Count_Upsert_Record_XML__c();
+            objCountUpsertRecXML.Batch_ApexId__c = strBatchId;
+            objCountUpsertRecXML.InsertedRecord__c = intInsertedRec;
+            //objCountUpsertRecXML.UpdatedRecord__c = intUpdatedRec;
+            insert objCountUpsertRecXML;
+            
+            Attachment objAttach = new Attachment();
+            objAttach.Name = 'Courses.xml';
+            objAttach.body = blob.valueOf(strXML);
+            objAttach.ParentId = objCountUpsertRecXML.id;
+            insert objAttach;
+            
+         }
+    } 
+    public static void InsertCourseEnrollmentFromxml(string strBatchId,string strContId, string strBBusername){
+        strXML = clsAdddataFromXML.getCoursesEnrollmentfromXML(strBBusername);
+        system.debug('@@@@@@@@@'+strXML);
+        List<Course_Enrollment__c> lstCourseEnrollmentdel = [select id from Course_Enrollment__c where contact__c =: strContId];
+        if(lstCourseEnrollmentdel.size() > 0){
+            delete lstCourseEnrollmentdel;
+        }
+        List<Course_Enrollment__c> lstCourseEnrollment = new List<Course_Enrollment__c>();
+        Course_Enrollment__c objCoursesEnrollment;
+        
+        
+        
+        List<Courses__c> lstCourses = [select id,id__c from Courses__c];
+        Map<String,Id> mapCourses = new Map<String,Id>();
+        for(Courses__c cr: lstCourses){
+            if(cr.id__c != null){
+                mapCourses.put(cr.id__c,cr.id);
+            }
+        }
+        
+        XMLDom xmldomOrders= new XMLDom(strXML);
+        XMLDom.Element xmlEleObj;       
+         
+        if(xmldomOrders.root != null) {
+            xmlEleObj = xmldomOrders.getElementByTagName('ArrayOfCourseIdVO');            
+            if(xmlEleObj !=null){                      
+                for(XMLDom.Element EleObj:xmlEleObj.childNodes) {
+                    
+                    objCoursesEnrollment = new Course_Enrollment__c();                      
+                    for(XMLDom.Element orderField: EleObj.childNodes){                        
+                        String xmlvalue = orderField.nodeValue;                         
+                        //if(orderField.nodeName == 'id' && xmlvalue != '') objCoursesEnrollment.Id_Cust__c = xmlvalue;
+                        if(orderField.nodeName == 'externalId' && xmlvalue != ''){                       
+                            if(mapCourses.get(xmlvalue) != null){
+                                objCoursesEnrollment.Courses__c = mapCourses.get(xmlvalue);
+                                objCoursesEnrollment.Contact__c = strContId;
+                            }                            
+                        }
+                    }
+                    if(objCoursesEnrollment != null && objCoursesEnrollment.Courses__c != null){                         
+                        lstCourseEnrollment.add(objCoursesEnrollment);
+                    }
+                }
+            }   
+        }          
+        if(lstCourseEnrollment.size() > 0){
+            
+            insert lstCourseEnrollment;
+            /*Schema.SObjectField f = Course_Enrollment__c.Fields.Id_Cust__c;
+            Database.UpsertResult [] cr = Database.upsert(lstCourseEnrollment, f, false); 
+            Integer intInsertedRec = 0;
+            Integer intUpdatedRec = 0;
+            for(Database.UpsertResult rslt :cr){
+                if(rslt.isSuccess() == true){
+                    if(rslt.isCreated() == true){
+                        intInsertedRec += 1;
+                    }else if(rslt.isCreated() == false){
+                        intUpdatedRec += 1;
+                    }
+                }
+            } */           
+            List<Count_Upsert_Record_XML__c> lstCountUpsertRecXML = [select id, InsertedRecord__c from Count_Upsert_Record_XML__c where Batch_ApexId__c =: strBatchId];
+            if(lstCountUpsertRecXML.size() > 0){
+                Count_Upsert_Record_XML__c objCountUpsertRecXML = lstCountUpsertRecXML[0];
+                //objCountUpsertRecXML.InsertedRecord__c += intInsertedRec;
+                update objCountUpsertRecXML;
+                
+                Attachment objAttach = new Attachment();
+                objAttach.Name = 'CourseEnrollment.xml';
+                objAttach.body = blob.valueOf(strXML);
+                objAttach.ParentId = objCountUpsertRecXML.id;
+                insert objAttach;
+            }else{
+            
+                Count_Upsert_Record_XML__c objCountUpsertRecXML = new Count_Upsert_Record_XML__c();
+                objCountUpsertRecXML.Batch_ApexId__c = strBatchId;
+                //objCountUpsertRecXML.InsertedRecord__c = intInsertedRec;
+                //objCountUpsertRecXML.UpdatedRecord__c = intUpdatedRec;
+                insert objCountUpsertRecXML;
+                
+                Attachment objAttach = new Attachment();
+                objAttach.Name = 'CourseEnrollment.xml';
+                objAttach.body = blob.valueOf(strXML);
+                objAttach.ParentId = objCountUpsertRecXML.id;
+                insert objAttach;
+            }
+         }
+    }  
+     
+}
