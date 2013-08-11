@@ -1,0 +1,106 @@
+////////////////////////////////////////////////////////////////////
+//Type             : Apex Class
+//Name             : ctrlUpdateallrecFromXML
+//Company          : 
+//Created By       :
+//Last Modified By :
+///////////////////////////////////////////////////////////////////
+public class ctrlUpdateallrecFromXML{
+    // constructor
+    public ctrlUpdateallrecFromXML(ApexPages.StandardController controller) {
+
+    }
+
+    public static string strXML {get; set;}
+    public Id strBatchId {get; set;}
+    
+  
+    public void InsertCoursesFromxml(){
+        Courses__c[] sourcetemp = new Courses__c[]{};
+        Courses__c objs = new Courses__c();
+        objs.Name = 'Test';
+        sourcetemp.add( objs);
+        BatchProcessor objBatchProcess= new BatchProcessor(sourcetemp);
+        strBatchId = Database.executeBatch(objBatchProcess, 10);
+        //ctrlAdddataFromXML.InsertCoursesFromxml();
+    }
+     public void InsertmemberConFromXML(){
+        /*Contact[] sourcetemp  = new Contact[]{};
+        Contact objs = new Contact();
+       
+        objs.LastName = 'Test';
+        sourcetemp.add( objs);
+        BatchProcessorNonMember objBatchProcess= new BatchProcessorNonMember(sourcetemp);
+        strBatchId = Database.executeBatch(objBatchProcess, 10);
+        
+        */
+        String Query = 'Select id,Name from Account';
+        BatchExecInsertmember  objBatchEmail= new BatchExecInsertmember(Query);    
+        strBatchId = Database.executeBatch(objBatchEmail, 1);
+            
+            
+            
+        //ctrlAdddataFromXML.InsertCoursesFromxml();
+    }
+    public void InsertNonmemberConFromXML(){
+        Courses__c[] sourcetemp = new Courses__c[]{};
+        Courses__c objs = new Courses__c();
+        objs.Name = 'Test';
+        sourcetemp.add( objs);
+        BatchProcessor objBatchProcess= new BatchProcessor(sourcetemp);
+        strBatchId = Database.executeBatch(objBatchProcess, 10);
+        //ctrlAdddataFromXML.InsertCoursesFromxml();
+    }
+    public void InsertCourseEnrollmentsFromXML(){
+        Course_Enrollment__c[] sourcetemp = new Course_Enrollment__c[]{};
+        Course_Enrollment__c objs = new Course_Enrollment__c();
+       
+        sourcetemp.add(objs);
+        BatchProcessorInsertCourseEnrollments objBatchProcessCourseEnroll = new BatchProcessorInsertCourseEnrollments(sourcetemp);
+        strBatchId = Database.executeBatch(objBatchProcessCourseEnroll, 10);
+        //ctrlAdddataFromXML.InsertCoursesFromxml();
+    }
+    
+    public pagereference showBatchJobStatus(){
+    
+        List<AsyncApexJob> lstAsyncApexJob = [select TotalJobItems, Status, NumberOfErrors, MethodName, JobType, JobItemsProcessed, Id, 
+                                    CreatedDate, CreatedById, CompletedDate, ApexClassId, ApexClass.Name 
+                                    From AsyncApexJob where id =: strBatchId ];
+        AsyncApexJob objAsyncApexJob;                           
+        if(lstAsyncApexJob.size() > 0){
+            objAsyncApexJob = lstAsyncApexJob[0];
+        }                       
+        if(objAsyncApexJob != null &&  objAsyncApexJob.status == 'Completed'){ 
+            List<Count_Upsert_Record_XML__c> lstCountUpsertRecXML = [select id, InsertedRecord__c, UpdatedRecord__c from Count_Upsert_Record_XML__c where Batch_ApexId__c =: strBatchId]; 
+            if(lstCountUpsertRecXML.size() > 0){
+                Count_Upsert_Record_XML__c objCountUpsertRecXML = lstCountUpsertRecXML[0];
+                Integer intInsertedRec = Integer.valueOf(objCountUpsertRecXML.InsertedRecord__c);
+                Integer intUpdatedRec = Integer.valueOf(objCountUpsertRecXML.UpdatedRecord__c);         
+                string strStatusMessage;
+                string strInsertStatusMessage;
+                //string strUpdateStatusMessage;
+                
+                if(intInsertedRec > 1){
+                    strInsertStatusMessage =  intInsertedRec + ' Records are inserted successfully...';                    
+                }else if(intInsertedRec == 0){
+                    strInsertStatusMessage =  'No Records updated'; 
+                }else{
+                    strInsertStatusMessage =  intInsertedRec + ' Record is inserted successfully...';
+                }
+                /*if(intUpdatedRec > 1){
+                    strUpdateStatusMessage =  intUpdatedRec + ' Records are updated successfully...';                    
+                }else{
+                    strUpdateStatusMessage =  intUpdatedRec + ' Record is updated successfully...';
+                }*/
+                strStatusMessage = strInsertStatusMessage;                          
+                ApexPages.Message myMsg = new ApexPages.Message(ApexPages.Severity.info,strStatusMessage );
+                ApexPages.addMessage(myMsg);
+                pagereference pr = new pagereference('/apex/UpdateallrecFromXML?id='+objCountUpsertRecXML.id);
+                pr.setRedirect(true);
+                return pr;
+            }                       
+            
+        }  
+        return null;
+    }
+}
