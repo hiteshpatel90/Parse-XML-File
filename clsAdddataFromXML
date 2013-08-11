@@ -1,0 +1,68 @@
+////////////////////////////////////////////////////////////////////
+//Type             : Apex Class
+//Name             : clsAdddataFromXML
+//Company          : 
+//Created By       :
+//Last Modified By :
+///////////////////////////////////////////////////////////////////
+global class clsAdddataFromXML{
+  
+    Public Static String getCoursesfromXML(){
+        String Results = '';      
+        HttpRequest req = new HttpRequest();
+        Http http = new Http();
+        req.setTimeout(60000);
+        req.setMethod('GET');
+        String url= 'http://webservice-2.apphb.com/BlackBoardAPI.asmx/GetAllCourses';
+        req.setEndPoint(url);
+        String strReqBody = clsAdddataFromXML.buildBodyCourses();        
+        req.setBody(strReqBody);
+        if(Test.isRunningTest()==false){
+            HTTPResponse resp = http.send(req);                 
+            Results = resp.getBody();     
+        }
+        return Results;    
+    }
+    
+    Public Static String getCoursesEnrollmentfromXML(String strBBusername){
+        String Results = '';
+      
+        HttpRequest req = new HttpRequest();
+        Http http = new Http();
+        req.setTimeout(60000);
+        req.setMethod('GET');                 
+        String url= 'http://webservice-2.apphb.com/BlackBoardAPI.asmx/GetCourseEnrollmentsByStudentID?studentID='+strBBusername;
+        
+        String strReqBody = clsAdddataFromXML.buildBodyCourseEnroll();        
+        req.setBody(strReqBody);
+        req.setEndPoint(url);
+        if(Test.isRunningTest()==false){ 
+            HTTPResponse resp = http.send(req);                 
+            Results = resp.getBody();     
+        }
+        return Results;    
+    }
+    public Static string buildBodyCourses(){ 
+        string body = '<?xml version="1.0" encoding="utf-8"?>';
+        body +='<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">';
+        body +='<soap:Body>';
+        body +='<GetAllCourses xmlns="http://technomile.com/webservices/">';
+        body +='<getToken>02e73186-361c-4a85-b2d0-661bd0100444</getToken>';
+        body +='</GetAllCourses>';
+        body +='</soap:Body>';
+        body +='</soap:Envelope>';
+        return body;   
+    }
+    public Static string buildBodyCourseEnroll(){ 
+        string body = '<?xml version="1.0" encoding="utf-8"?>';
+        body +='<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">';
+        body +='<soap:Body>';
+        body +='<GetCourseEnrollmentsByStudentID xmlns="http://technomile.com/webservices/">';
+        body +='<getToken>02e73186-361c-4a85-b2d0-661bd0100444</getToken>';
+        body +='</GetCourseEnrollmentsByStudentID >';
+        body +='</soap:Body>';
+        body +='</soap:Envelope>';
+        return body;   
+    }
+    
+}
