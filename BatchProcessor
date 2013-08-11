@@ -1,0 +1,28 @@
+////////////////////////////////////////////////////////////////////
+//Type             : Apex Class
+//Name             : BatchProcessor 
+//Company          : 
+//Created By       :
+//Last Modified By :
+///////////////////////////////////////////////////////////////////
+global class BatchProcessor implements Database.batchable<SObject>,Database.AllowsCallouts {
+    SObject[] source;
+    
+    global BatchProcessor(SObject[] source) {
+        this.source = source;
+    }
+
+    global Iterable<SObject> start(Database.BatchableContext bc) {
+        BatchSObjectFeeder bf = new BatchSObjectFeeder(source);
+        return bf;
+    }
+    
+    global void execute(Database.BatchableContext bc, SObject[] scope) {
+        //insert scope;
+        ctrlAdddataFromXML.InsertCoursesFromxml();
+    }
+    
+    global void finish(Database.BatchableContext bc) {
+       
+    }
+}
